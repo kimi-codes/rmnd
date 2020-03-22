@@ -42,8 +42,8 @@ def play_rec(msg):
     mixer.init()
     mixer.music.load(filename)
     mixer.music.play()
-    #while mixer.music.get_busy():
-    #    time.sleep(0.1)
+    while mixer.music.get_busy():
+        time.sleep(0.1)
 
     print(f'play: {time.time() - test_t}')
     #TODO: delete rec file, maybe delete while
