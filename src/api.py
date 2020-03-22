@@ -58,9 +58,8 @@ def get_reminder(from_date, to_date, id_list):
     data = pd.read_csv(data_file)
 
     if id_list is not None:
-        id_list = id_list.split(",")
-        id_list_df = {'id': id_list}
-        data = data[data.id.isin(id_list_df)]
+        id_list = id_list.split(" ")
+        data = data[data.id.isin(id_list)]
 
     if from_date is not None:
         dt = parse_time(from_date)
