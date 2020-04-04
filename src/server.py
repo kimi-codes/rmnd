@@ -78,9 +78,11 @@ def server_socket():
             received_data = conn.recv(4096)
             if not received_data:
                 break
-            new_data = received_data.decode('utf-8')
-            new_data = pd.read_json(new_data, convert_dates=False)
-            update(new_data)
+            # TODO: outside of while loop:
+            #new_data = received_data.decode('utf-8')
+            #new_data = pd.read_json(new_data, convert_dates=False)
+            #print(new_data)
+            #update(new_data)
         conn.close()
 
 

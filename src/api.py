@@ -36,7 +36,7 @@ def send_to_server(df):
     client.close()
 
 
-# returns thhe ID of the last created reminder, or 0 if empty
+# returns the ID of the last created reminder, or 0 if empty
 def get_last_id():
     data = pd.read_csv(data_file)
     last_id = 0
@@ -56,6 +56,9 @@ def parse_time(dt):
 # returns a dataframe containing all or part of the reminders
 def get_reminder(from_date, to_date, id_list):
     data = pd.read_csv(data_file)
+
+    from_date = None if from_date == '' else from_date
+    to_date = None if to_date == '' else to_date
 
     if id_list is not None:
         id_list = id_list.split(" ")
@@ -80,8 +83,8 @@ def hello():
 @app.route('/add', methods=['POST'])
 def add_reminder():
     global next_id
-    msg = request.form['message']
-    dt = request.form['time']
+    msg = request.form.get('message')
+    dt = request.form.get('time')
     dt = parse_time(dt)
 
     new_rem_df = data_template.copy()
@@ -97,15 +100,15 @@ def add_reminder():
         new_rem_df['mode'] = 'a'
         send_to_server(new_rem_df)
 
-    return ('added')
+    return str(new_rem_df)
     # TODO: return status code
 
 
 @app.route('/remove', methods=['POST'])
 def remove_rem():
-    from_date = request.form('from')
-    to_date = request.form('to')
-    id_list = request.form('id')
+    from_date = request.form.get('from')
+    to_date = request.form.get('to')
+    id_list = request.form.get('id')
 
     # create a df of IDs to delete
     rm_id = get_reminder(from_date, to_date, id_list)
@@ -117,10 +120,12 @@ def remove_rem():
     data.to_csv(data_file, header=True, index=False)
 
     # update server
+    rm_id = pd.DataFrame(rm_id)
     rm_id['mode'] = 'r'
-    send_to_server(rm_id)
-
-    jdata = rm_id.to_json()
+    print(rm_id)
+    #send_to_server(rm_id)
+    #print(rm_id['id'])
+    jdata = rm_id['id'].to_json
 
     return jdata
 
