@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import pandas as pd
 import ciso8601
-import socket
 import json
 import time
 
@@ -12,6 +11,7 @@ API_PORT = '8085'
 
 data_template = pd.DataFrame(columns=['id', 'reminder_time', 'message', 'x_sec_repeat'])
 data_file = f"data.csv"
+data_version_file = f"data_ver.txt"
 
 app = Flask(__name__)
 
@@ -25,15 +25,14 @@ def create_files():
     except FileNotFoundError:
         df = data_template.copy()
         df.to_csv(data_file, index=False)
-
-
-# sends data to the server
-def send_to_server(df):
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((SERVER_HOST, int(SERVER_PORT)))
-    msg = df.to_json()
-    client.send(msg.encode('utf-8'))
-    client.close()
+    # data-version file
+    try:
+        f = open(data_version_file, "r")
+        f.close()
+    except FileNotFoundError:
+        f = open(data_version_file, "w+")
+        f.write("0")
+        f.close()
 
 
 # returns the ID of the last created reminder, or 0 if empty
@@ -44,6 +43,15 @@ def get_last_id():
         last_id = data['id'].max()
 
     return last_id
+
+
+def update_data_version():
+    global data_ver
+
+    data_ver += 1
+    f = open(data_version_file, "w+")
+    f.write(str(data_ver))
+    f.close()
 
 
 # parses time to epoch format
@@ -94,13 +102,10 @@ def add_reminder():
     # save to the data file
     new_rem_df.to_csv(data_file, mode='a', header=False, index=False)
     next_id += 1
+    update_data_version()
 
-    # update the server
-    if new_rem_df.iloc[0]['reminder_time'] >= int(time.time()):
-        new_rem_df['mode'] = 'a'
-        send_to_server(new_rem_df)
-
-    return str(new_rem_df)
+    jdata = json.loads(new_rem_df.to_json(orient='records'))
+    return jsonify(jdata)
     # TODO: return status code
 
 
@@ -119,15 +124,9 @@ def remove_rem():
     data = data[~data.id.isin(rm_id)]
     data.to_csv(data_file, header=True, index=False)
 
-    # update server
-    rm_id = pd.DataFrame(rm_id)
-    rm_id['mode'] = 'r'
-    print(rm_id)
-    #send_to_server(rm_id)
-    #print(rm_id['id'])
-    jdata = rm_id['id'].to_json
+    update_data_version()
 
-    return jdata
+    return rm_id.to_string(index=False)
 
 
 @app.route('/list', methods=['GET'])
@@ -141,8 +140,18 @@ def get_rem():
     return jsonify(jdata)
 
 
+@app.route('/data-version', methods=['GET'])
+def get_data_version():
+    f = open(data_version_file, "r")
+    ver = f.read()
+    f.close()
+
+    return ver
+
+
 if __name__ == '__main__':
     create_files()
     next_id = get_last_id() + 1
+    data_ver = int(get_data_version())
 
     app.run(debug=True, host=API_HOST, port=API_PORT)

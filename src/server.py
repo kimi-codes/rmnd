@@ -3,7 +3,6 @@ from gtts import gTTS
 import pandas as pd
 import threading
 import requests
-import socket
 import time
 
 
@@ -49,41 +48,21 @@ def play_rec(msg):
     #TODO: delete rec file, maybe delete while
 
 
-# adds or removes reminders in data df
-def update(df):
-    global data
+def get_data_version():
+    url = f'http://{API_HOST}:{API_PORT}/data-version'
+    r = requests.get(url=url)
+    return int(r.text)
 
-    mode = df.iloc[0]['mode']
-    df = df.drop(['mode'], axis=1)
+# TODO: add a hook in api
+def check_for_updates():
+    global data_version
 
-    # add upcoming reminders to data df
-    if mode == 'a':
-        data = data.append(df, ignore_index=True)
-        data = data.sort_values(by=['reminder_time'])
-    # delete reminder
-    elif mode == 'd':
-        data = data[~data.id.isin(df['id'])]
-
-
-# receives updates through socket
-def server_socket():
-    global data
-
-    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind((SERVER_HOST, int(SERVER_PORT)))
-    serversocket.listen(5)
     while True:
-        conn, address = serversocket.accept()
-        while True:
-            received_data = conn.recv(4096)
-            if not received_data:
-                break
-            # TODO: outside of while loop:
-            #new_data = received_data.decode('utf-8')
-            #new_data = pd.read_json(new_data, convert_dates=False)
-            #print(new_data)
-            #update(new_data)
-        conn.close()
+        current_data_ver = get_data_version()
+        if current_data_ver != data_version:
+            data_version = current_data_ver
+            load_data()
+        time.sleep(0.5)
 
 
 # plays reminders
@@ -101,9 +80,9 @@ def play_reminder():
 
 if __name__ == '__main__':
     data = None
-    socket_thread = threading.Thread(target=server_socket, args=())
-
+    data_version = 0
     load_data()
+    socket_thread = threading.Thread(target=check_for_updates, args=())
     socket_thread.start()
     play_reminder()
 
