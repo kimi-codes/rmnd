@@ -18,6 +18,8 @@ app = Flask(__name__)
 
 # creates missing file
 def create_files():
+    global data_ver
+
     # data file
     try:
         f = open(data_file, "r")
@@ -25,14 +27,25 @@ def create_files():
     except FileNotFoundError:
         df = data_template.copy()
         df.to_csv(data_file, index=False)
+
     # data-version file
     try:
         f = open(data_version_file, "r")
+        data_ver = int(f.read())
         f.close()
     except FileNotFoundError:
         f = open(data_version_file, "w+")
         f.write("0")
         f.close()
+
+
+def update_data_version():
+    global data_ver
+
+    data_ver += 1
+    f = open(data_version_file, "w+")
+    f.write(str(data_ver))
+    f.close()
 
 
 # returns the ID of the last created reminder, or 0 if empty
@@ -43,15 +56,6 @@ def get_last_id():
         last_id = data['id'].max()
 
     return last_id
-
-
-def update_data_version():
-    global data_ver
-
-    data_ver += 1
-    f = open(data_version_file, "w+")
-    f.write(str(data_ver))
-    f.close()
 
 
 # parses time to epoch format
@@ -123,7 +127,6 @@ def remove_rem():
     data = pd.read_csv(data_file)
     data = data[~data.id.isin(rm_id)]
     data.to_csv(data_file, header=True, index=False)
-
     update_data_version()
 
     return rm_id.to_string(index=False)
@@ -142,16 +145,13 @@ def get_rem():
 
 @app.route('/data-version', methods=['GET'])
 def get_data_version():
-    f = open(data_version_file, "r")
-    ver = f.read()
-    f.close()
-
-    return ver
+    global data_ver
+    return jsonify(data_ver)
 
 
 if __name__ == '__main__':
+    data_ver = 0
     create_files()
     next_id = get_last_id() + 1
-    data_ver = int(get_data_version())
 
     app.run(debug=True, host=API_HOST, port=API_PORT)

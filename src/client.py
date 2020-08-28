@@ -3,6 +3,7 @@ import time
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 import argparse
+import dateparser
 import datetime
 import requests
 import pandas as pd
@@ -17,46 +18,13 @@ BASE_URL = f'http://{API_HOST}:{API_PORT}'
 ADD_URL = f'{BASE_URL}/add'
 RM_URL = f'{BASE_URL}/remove'
 LS_URL = f'{BASE_URL}/list'
+DATA_VER_URL = f'{BASE_URL}/data-version'
 
 TIME_FORMAT = '%Y%m%dt%H%M%S'
 
 data_template = pd.DataFrame(columns=['id', 'reminder_time', 'message', 'x_sec_repeat'])
 
 '''
-(in) x [days-time] | (and/,) x [days-time] | (at) [hh:mm:ss / hh:mm / h](pm/am)
-* if [hour-time] present, no 'at'
-
-x [days-time] | (and/,) x [days-time] | ago | (at) [hh:mm:ss / hh:mm / h](pm/am)
-* if [hour-time] present, no 'at'
-
-[date] | (at) [hh:mm:ss / hh:mm / h](pm/am)
-
-date:
-[yyyy/mm/dd dd/mm/yy dd/mm]
-['/' / '-' / '.'] 
-[D [month] (,) yy(yy)]
-[[month] D(st/nd/rd/th) (,) yy(yy)]
-
-'''
-
-'''
-START
-GOT_NUM
-GOT_TYPE
-GET_TIME
-END
-
-
-NUM (num)
-DATE_PART {days, weeks, months, years}
-TIME_PART {seconds, minutes, hours} 
-AT "at"
-AND "and"
-AGO "ago"
-TIME 
-'''
-
-
 def tp(txt):
     # time tense values:
     tense = dict(unknown=0, past=1, future=2)
@@ -156,13 +124,7 @@ def t_parse(txt):
     if updated_flag:
         return dt
     return None
-
-
-# add: -t, --time
-
-# rm, ls:  --from
-#          --to
-#          --id
+'''
 
 
 def parse_args():
@@ -207,8 +169,7 @@ def add_cmd(arguments):
         dt = time.strftime(TIME_FORMAT, time.localtime(time.time()))
     else:
         dt = ' '.join(dt)
-        # TODO: t_parse should throw exceptions?
-        dt = t_parse(dt)
+        dt = dateparser.parse(dt)
         if dt is not None:
             dt = dt.strftime(TIME_FORMAT)
         else:
@@ -218,18 +179,18 @@ def add_cmd(arguments):
     text = ' '.join(arguments['text'])
     params = {"message": text, "time": dt}
     r = requests.post(ADD_URL, params)
-    print(r.content)
+    print(r.text)
 
 
-def ls_cmd(arguments):
-    from_dt = arguments['from']
+def ls_rm_param_parse(arguments):
     id_str = arguments['id']
     if id_str:
         id_str = ' '.join(id_str)
 
+    from_dt = arguments['from']
     if from_dt is not None:
         t = ' '.join(from_dt)
-        t = t_parse(t)
+        t = dateparser.parse(t)
         if t is not None:
             from_dt = t.strftime(TIME_FORMAT)
         else:
@@ -239,7 +200,7 @@ def ls_cmd(arguments):
     to_dt = arguments['to']
     if to_dt is not None:
         t = ' '.join(to_dt)
-        t = t_parse(t)
+        t = dateparser.parse(t)
         if t is not None:
             to_dt = t.strftime(TIME_FORMAT)
         else:
@@ -247,6 +208,11 @@ def ls_cmd(arguments):
             exit()
 
     params = {'from': from_dt, 'to': to_dt, 'id': id_str}
+    return params
+
+
+def ls_cmd(arguments):
+    params = ls_rm_param_parse(arguments)
 
     r = requests.get(url=LS_URL, params=params)
     data = pd.read_json(r.content, orient="records", convert_dates=False)
@@ -256,33 +222,10 @@ def ls_cmd(arguments):
 
 
 def rm_cmd(arguments):
-    id_str = arguments['id']
-    if id_str:
-        id_str = ' '.join(id_str)
-
-    from_dt = arguments['from']
-    if from_dt is not None:
-        t = ' '.join(from_dt)
-        t = t_parse(t)
-        if t is not None:
-            from_dt = t.strftime(TIME_FORMAT)
-        else:
-            print('could not parse "from"')
-            exit()
-
-    to_dt = arguments['to']
-    if to_dt is not None:
-        t = ' '.join(from_dt)
-        t = t_parse(t)
-        if t is not None:
-            to_dt = t.strftime(TIME_FORMAT)
-        else:
-            print('could not parse "to"')
-            exit()
-
-    params = {'from': from_dt, 'to': to_dt, 'id': id_str}
+    params = ls_rm_param_parse(arguments)
 
     r = requests.post(RM_URL, params)
     print(r.content)
+
 
 run_cmd()

@@ -5,21 +5,24 @@ import threading
 import requests
 import time
 
-
-SERVER_HOST = ''
-SERVER_PORT = '8086'
 API_HOST = '0.0.0.0'
 API_PORT = '8085'
 
+BASE_URL = f'http://{API_HOST}:{API_PORT}'
+ADD_URL = f'{BASE_URL}/add'
+RM_URL = f'{BASE_URL}/remove'
+LS_URL = f'{BASE_URL}/list'
+DATA_VER_URL = f'{BASE_URL}/data-version'
+
+TIME_FORMAT = '%Y%m%dt%H%M%S'
 data_template = pd.DataFrame(columns=['id', 'reminder_time', 'message', 'x_sec_repeat'])
 
 
-# loads relevant data on app startup (only upcoming reminders)
+# loads only upcoming reminders
 def load_data():
     global data
-    url = f'http://{API_HOST}:{API_PORT}/list'
-    params = {'from': time.strftime("%Y%m%dt%H%M%S", time.localtime(time.time()))}
-    r = requests.get(url=url, params=params)
+    params = {'from': time.strftime(TIME_FORMAT, time.localtime(time.time()))}
+    r = requests.get(url=LS_URL, params=params)
 
     data = pd.read_json(r.content, orient="records",  convert_dates=False)
     if data.empty:
@@ -29,31 +32,31 @@ def load_data():
 
 # creates and plays the recording
 def play_rec(msg):
-    test_t = time.time()
     filename = "rec" + ".mp3"
     language = 'en'
 
     # create a record file of the reminder and save locally
     myobj = gTTS(text=msg, lang=language, slow=False)
     myobj.save(filename)
-    print(f'create rec: {time.time() - test_t}')
+
     # play the recording
     mixer.init()
     mixer.music.load(filename)
     mixer.music.play()
-    while mixer.music.get_busy():
-        time.sleep(0.1)
+    #while mixer.music.get_busy():
+    #    time.sleep(0.1)
 
-    print(f'play: {time.time() - test_t}')
-    #TODO: delete rec file, maybe delete while
+    #TODO: delete rec file, maybe delete while loop, create rec on different thread
 
 
+# get the data version from the api
 def get_data_version():
-    url = f'http://{API_HOST}:{API_PORT}/data-version'
-    r = requests.get(url=url)
+    r = requests.get(url=DATA_VER_URL)
     return int(r.text)
 
-# TODO: add a hook in api
+
+# TODO: add a hook in api?
+# check if the api has updated, and update the reminders with the changed data
 def check_for_updates():
     global data_version
 
