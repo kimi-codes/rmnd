@@ -43,10 +43,6 @@ def play_rec(msg):
     mixer.init()
     mixer.music.load(filename)
     mixer.music.play()
-    #while mixer.music.get_busy():
-    #    time.sleep(0.1)
-
-    #TODO: delete rec file, maybe delete while loop, create rec on different thread
 
 
 # get the data version from the api
@@ -55,7 +51,6 @@ def get_data_version():
     return int(r.text)
 
 
-# TODO: add a hook in api?
 # check if the api has updated, and update the reminders with the changed data
 def check_for_updates():
     global data_version
