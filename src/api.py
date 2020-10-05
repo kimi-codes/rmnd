@@ -4,10 +4,8 @@ import ciso8601
 import json
 import time
 
-SERVER_HOST = ''
-SERVER_PORT = '8086'
-API_HOST = '0.0.0.0'
-API_PORT = '8085'
+HOST = '0.0.0.0'
+PORT = '8085'
 
 data_template = pd.DataFrame(columns=['id', 'reminder_time', 'message', 'x_sec_repeat'])
 data_file = f"data.csv"
@@ -154,4 +152,4 @@ if __name__ == '__main__':
     create_files()
     next_id = get_last_id() + 1
 
-    app.run(debug=True, host=API_HOST, port=API_PORT)
+    app.run(debug=True, host=HOST, port=PORT)

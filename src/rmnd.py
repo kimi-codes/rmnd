@@ -4,22 +4,67 @@ import argparse
 import dateparser
 import requests
 import pandas as pd
+import json
+import os
 
 
-SERVER_HOST = ''
-SERVER_PORT = '8086'
-API_HOST = '0.0.0.0'
-API_PORT = '8085'
+SERVER_HOST = '0.0.0.0'
+SERVER_PORT = '8085'
 
-BASE_URL = f'http://{API_HOST}:{API_PORT}'
-ADD_URL = f'{BASE_URL}/add'
-RM_URL = f'{BASE_URL}/remove'
-LS_URL = f'{BASE_URL}/list'
-DATA_VER_URL = f'{BASE_URL}/data-version'
-
+CONFIG_FILE = "conf.json"
 TIME_FORMAT = '%Y%m%dt%H%M%S'
-
 data_template = pd.DataFrame(columns=['id', 'reminder_time', 'message', 'x_sec_repeat'])
+
+
+def set_host_config():
+    global SERVER_HOST
+    global SERVER_PORT
+    global BASE_URL
+    global ADD_URL
+    global RM_URL
+    global LS_URL
+    global DATA_VER_URL
+
+    # if conf file exists read current values
+    try:
+        with open(CONFIG_FILE) as conf_file:
+            data = json.load(conf_file)
+            data = json.loads(data)
+            SERVER_HOST = data['host']
+            SERVER_PORT = data['port']
+    except: 
+        pass
+
+    BASE_URL = f'http://{SERVER_HOST}:{SERVER_PORT}'
+    ADD_URL = f'{BASE_URL}/add'
+    RM_URL = f'{BASE_URL}/remove'
+    LS_URL = f'{BASE_URL}/list'
+    DATA_VER_URL = f'{BASE_URL}/data-version'
+
+
+def config_cmd(arguments):
+    host = SERVER_HOST
+    port = SERVER_PORT
+
+    # no args - show current config values (from conf file if exists, or default values)
+    if not arguments['host'] and not arguments['port'] and not arguments['set_default']:
+        print(f'Host: {host}\nPort: {port}')
+
+    # set-default argument - to use default host & port just delete the config file
+    elif arguments['set_default']:
+        os.remove(CONFIG_FILE)
+        
+    else:
+        if arguments['host']:
+            host = arguments['host'][0]
+        if arguments['port']:
+            port = arguments['port'][0]
+
+        # save new values to conf file
+        conf_data = {"host": host, "port": port}
+        json_dump = json.dumps(conf_data)
+        with open(CONFIG_FILE, 'w') as conf_file:
+            json.dump(json_dump, conf_file)
 
 
 def parse_args():
@@ -41,6 +86,12 @@ def parse_args():
     subparsers.add_parser('rm', parents=[parent_parser], help='remove reminder')
     subparsers.add_parser('ls', parents=[parent_parser], help='list reminders')
 
+    # 'config' parser
+    parser_config = subparsers.add_parser('config', help='edit config file')
+    parser_config.add_argument("--host", nargs='*', action='store')
+    parser_config.add_argument("-p", "--port", nargs='*', action='store')
+    parser_config.add_argument("--set_default", action='store_true') 
+
     args = parser.parse_args()
     return args
 
@@ -55,6 +106,8 @@ def run_cmd():
         ls_cmd(arguments)
     elif args.command == 'rm':
         rm_cmd(arguments)
+    elif args.command == 'config':
+        config_cmd(arguments)
 
 
 def add_cmd(arguments):
@@ -118,9 +171,9 @@ def ls_cmd(arguments):
 
 def rm_cmd(arguments):
     params = ls_rm_param_parse(arguments)
-
     r = requests.post(RM_URL, params)
     print(r.content)
 
 
+set_host_config()
 run_cmd()
