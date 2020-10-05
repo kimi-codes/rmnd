@@ -4,6 +4,11 @@ A command-line reminder tool, using Googles TTS to read the reminders out loud.
 This program contains of a server and a client, and can be run on different computers. 
 
 
+to install requirements run:  
+```
+pip install -r requirements.txt
+```  
+
 ### server.py: (server)
 The database of the reminders. Has a HTTP API for adding, deleting and listing reminders.  
 run:  
