@@ -32,10 +32,6 @@ mv ./rmnd.py /usr/local/bin/rmnd
 
 
 If previous step not done, change `rmnd` with `python3 rmnd.py` or `py rmnd.py` on next examples:  
-run:  
-```bash
-rmnd
-```  
 
 if server is running on a different host:  
 ```bash 
