@@ -37,9 +37,9 @@ All parts can run on different machines.
 ### Requirements
 This project requires Python3 and several Python packages to run.
 
-#### Python 3.X
-You should have Python 3.X installed on your machine.
-To check if Python3 installed run the following in terminal:
+#### Python 3.6+
+You should have Python 3.6+ installed on your machine.
+To check if Python3 installed and the version run the following in terminal:
 ```
 python3 --version
 ```
@@ -92,9 +92,9 @@ If the server is running on a different host or changes been made to the default
 ```bash 
 rmnd config --host <IP> --port <PORT>
 ```  
-`--host <IP>` or `--port <PORT>` can be ommited if they`re default values.
-** If previous step not done. use `python3 rmnd.py` instead of `rmnd`.
+`--host <IP>` or `--port <PORT>` can be ommited if they're default values.
 
+> **_NOTE:_**  If previous step not done, use `python3 rmnd.py` or `py rmnd.py` instead of `rmnd`.
 
 
 ## CLI Usage
@@ -121,4 +121,62 @@ rmnd rm 1 2 4
 
 ## Servers API usage
 
-Comming Soon
+#### Add a Reminder: `/add`   
+Method: POST  
+Returned-Type: application/json  
+Arguments:   
+- `time`:
+Use this time format: YYYYMMDDtHHMMSS  
+for example: Oct 14, 2020 at 4:05 PM will be: `20201014t1605`
+- `message`
+
+###### Example:  
+```Bash
+curl -d "message=hello world!" -d "time=20201014t1605" -X POST localhost:8085/add 
+```
+
+#### Delete Reminders: `/remove`  
+Method: POST  
+Returned-Type: text/html
+Optional arguments:   
+- `from`, `to`:  optional
+Use this time format: YYYYMMDDtHHMMSS  
+for example: Oct 14, 2020 at 4:05 PM will be: `20201014t1605`  
+- `id`:  optional
+List of reminder IDs, separated by space or by `%20`  
+
+###### Example:  
+```Bash
+curl -d "id=1 3" -d "to=20201013t0000" -X POST localhost:8085/remove 
+```
+
+
+#### List Reminders: `/list`  
+Method: GET  
+Returned-Type: application/json  
+Optional arguments:   
+- `from`, `to`:  optional
+Use this time format: YYYYMMDDtHHMMSS  
+for example: Oct 14, 2020 at 4:05 PM will be: `20201014t1605`  
+- `id`:  optional
+List of reminder IDs, separated by space or by `%20`  
+
+
+###### Example:  
+```Bash
+# get full list
+curl localhost:8085/list
+
+# list reminders from Oct 12, 2020 at 1PM to Oct 13, 2020 at 3:30PM out of the reminders [1, 2, 4, 6]
+curl -d "id=1 2 4 6" -d "from=20201012t1300" -d "to=20201013t1530" -X GET localhost:8085/list 
+```
+
+#### Get Data Version: `/data-version`  
+Method: GET  
+Returned-Type: application/json  
+
+###### Example:
+```Bash
+curl localhost:8085/data-version
+```
+
